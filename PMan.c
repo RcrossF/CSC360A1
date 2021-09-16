@@ -9,17 +9,27 @@
 #define CMD_BGKILL 2
 #define CMD_BGSTOP 3
 #define CMD_BGCONT 4
-#define CMD_BGSTAT 5
+#define CMD_PSTAT 5
 
 int main(){
 	char* cmd;
+	char* token;
 	int cmd_type;
+
+	int pid = 0;
+	char* argv;
 
 	while(1){	
 		cmd = readline("PMan: > ");
 		
-		/* parse the input cmd (e.g., with strtok)
-		 */
+		token = strtok(cmd, ' ');
+   
+		/* walk through other tokens */
+		while( token != NULL ) {
+			printf( " %s\n", token );
+			
+			token = strtok(NULL, ' ');
+		}
 		
 		if (cmd_type == CMD_BG){
 			bg_entry(argv);
@@ -60,12 +70,19 @@ void bg_entry(char **argv){
 	}
 }
 
+void bglist_entry(void){}
+void bgsig_entry(int pid, int cmd_type){}
+void pstat_entry(int pid){}
+void usage_pman(void){}
+
 void check_zombieProcess(void){
 	int status;
 	int retVal = 0;
 	
 	while(1) {
 		usleep(1000);
+
+		char* headPnode = "CHANGEME";
 		if(headPnode == NULL){
 			return ;
 		}
