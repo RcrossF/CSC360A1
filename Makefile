@@ -1,8 +1,9 @@
 .phony all:
 all: pman
 
-pman: PMan.c
-	gcc -Wall PMan.c -lreadline -o PMan -g
+pman: PMan.c helpers.o helpers.h
+	gcc -Wall PMan.c helpers.o -lreadline -o PMan -g
+
 
 .PHONY clean:
 clean:

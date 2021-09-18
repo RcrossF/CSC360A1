@@ -1,3 +1,5 @@
 *.gz
 .vscode
 *.exe
+*.o
+PMan
