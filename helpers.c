@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 
 void strToUpper(char *str)
 {
@@ -20,4 +21,11 @@ void singleLineCmd(char *cmd, char* res){
     pclose(fp);
 
     strcpy(res, buff);
+}
+
+/*
+Returns 0 if pid exists, -1 on error
+*/
+int pid_exists(int pid){
+    kill(pid, 0);
 }

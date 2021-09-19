@@ -74,7 +74,7 @@ int main(){
 				break;
 		}
 
-		check_zombieProcess();
+		//check_zombieProcess();
 
 		// Empty argv for the next loop
 		int j = 0;
@@ -115,13 +115,15 @@ struct process query_proc(int pid){
 	// Comm
 	sprintf(cmd, "ps -p %d -o comm=", pid);
 	singleLineCmd(cmd, comm);
-  
-	// // State
-	// sprintf(cmd, "ps -p %d -o state=", pid);
-	// singleLineCmd(cmd, state);
-
+	// Remove newline from end of string
+	for(int i = 0; i<349;i++){
+		if(comm[i] == '\n'){
+			comm[i] = '\0';
+			break;
+		}
+	}
 	// voluntary_ctxt_switches
-	sprintf(cmd, "cat /proc/%d/status | grep ctxt | grep -Eo '[0-9]{1,10}'", pid);
+	sprintf(cmd, "cat /proc/%d/status | grep voluntary_ctxt | grep -Eo '[0-9]{1,10}'", pid);
 	singleLineCmd(cmd, temp);
 	vol_ctx = atoi(temp);
 
@@ -133,18 +135,29 @@ struct process query_proc(int pid){
 	sprintf(cmd, "cat /proc/%d/stat", pid);
 	singleLineCmd(cmd, temp);
 
-	
+	// Parse output of /proc/{pid}/stat
 	int d = 0; // For unused sscanf elems
 	char s[100];
-	int n = sscanf(temp, "%d %s %c %d", &d, s, &state, &d);
-	sscanf(temp, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld", &d, s, state, &d, &d, &d, &d, &d, &d, &d, &d, &d, &d, &utime, &stime, &d, &d, &d, &d, &d, &d, &d, &d, &rss);
+	int n = sscanf(temp, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld", &d, s, &state, &d, &d, &d, &d, &d, &d, &d, &d, &d, &d, &utime, &stime, &d, &d, &d, &d, &d, &d, &d, &d, &rss);
+	if(n < 24){
+		printf("Error parsing command: ");
+		printf(cmd);
+		sprintf(temp, "\n%d/24 values parsed sucessfully", n);
+		printf(temp);
+	}
 
+	// Build a struct with all this parsed info
+	struct process proc;
+	proc.pid = pid;
+	strcpy(proc.comm, comm);
+	proc.rss = rss;
+	proc.state = state;
+	proc.utime = utime;
+	proc.stime = stime;
+	proc.vol_ctxt_switches = vol_ctx;
+	proc.nonvol_ctxt_switches = nonvol_ctx;
 
-	//rss - TODO: Is this the right rss?
-	sprintf(cmd, "ps -p %d -o rss=", pid);
-	singleLineCmd(cmd, temp);
-	rss = atoi(temp);
-	printf('test');
+	return proc;
 }
 
 
@@ -169,7 +182,32 @@ void bg_entry(char *argv){
 void bglist_entry(void){}
 void bgsig_entry(int pid, int cmd_type){}
 void pstat_entry(int pid){
+	char tempstr[150];
+
+	if(pid_exists(pid) != 0){
+		sprintf(tempstr, "\nError:	Process %d does not exist\n", pid);
+		printf(tempstr);
+		return;
+	}
 	struct process proc_info = query_proc(pid);
+
+	sprintf(tempstr, "\nDetails for PID %d:\n"
+					"	comm: %s\n"
+					"	state: %c\n"
+					"	utime: %lu\n"
+					"	stime: %lu\n"
+					"	rss: %ld\n"
+					"	voluntary_ctxt_switches: %ld\n"
+					"	nonvoluntary_ctxt_switches: %ld\n",
+					proc_info.pid,
+					proc_info.comm,
+					proc_info.state,
+					proc_info.utime,
+					proc_info.stime,
+					proc_info.rss,
+					proc_info.vol_ctxt_switches,
+					proc_info.nonvol_ctxt_switches);
+	printf(tempstr);
 }
 
 void check_zombieProcess(void){
