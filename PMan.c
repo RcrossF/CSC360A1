@@ -100,6 +100,16 @@ int parse_cmd_type(char* cmd_type){
 	else return -1;
 }
 
+void append_new_proc(int pid){
+	struct process proc;
+	for(int i=0;i<MAX_PROCS-1;i++){
+		if(running_procs[i].pid == 0){
+			running_procs[i].pid = pid;
+		}
+	}
+	
+}
+
 struct process query_proc(int pid){
 	char temp[350];
 	char comm[350];
@@ -171,7 +181,8 @@ void bg_entry(char *argv){
 		exit(EXIT_SUCCESS);
 	}
 	else if(pid > 0) {
-		// store information of the background child process in your data structures
+		// TODO: get executable path then pass to append-new-proc
+		append_new_proc(pid);
 	}
 	else {
 		perror("fork failed");
