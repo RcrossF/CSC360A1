@@ -4,9 +4,10 @@
 #include <errno.h>
 #include <unistd.h>
 #include "helpers.h"
+#include <sys/times.h>
 
 #define NUM_ARGS 20
-#define LEN_ARGS 40
+#define MAX_PROCS 50
 
 #define CMD_BG 0
 #define CMD_BGLIST 1
@@ -15,13 +16,18 @@
 #define CMD_BGSTOP 4
 #define CMD_PSTAT 5
 
+struct process running_procs[MAX_PROCS];
+
 int main(){
 	char* argv[NUM_ARGS]; // Support 20 arguments of 40 characters each
 	char* cmd;
 	char* token;
 	int cmd_type;
-
 	int pid = 0;
+
+	for(int i = 0; i < MAX_PROCS-1;i++){
+		running_procs[i].pid = 0;
+	}
 	
 
 	while(1){	
@@ -60,6 +66,7 @@ int main(){
 				break;
 
 			case CMD_PSTAT:
+				pid = atoi(argv[1]);
 				pstat_entry(pid);
 				break;
 
@@ -93,6 +100,53 @@ int parse_cmd_type(char* cmd_type){
 	else return -1;
 }
 
+struct process query_proc(int pid){
+	char temp[350];
+	char comm[350];
+	char state;
+	long int rss;
+	int vol_ctx;
+	int nonvol_ctx;
+	long unsigned int utime;
+	long unsigned int stime;
+	char cmd[50];
+	
+
+	// Comm
+	sprintf(cmd, "ps -p %d -o comm=", pid);
+	singleLineCmd(cmd, comm);
+  
+	// // State
+	// sprintf(cmd, "ps -p %d -o state=", pid);
+	// singleLineCmd(cmd, state);
+
+	// voluntary_ctxt_switches
+	sprintf(cmd, "cat /proc/%d/status | grep ctxt | grep -Eo '[0-9]{1,10}'", pid);
+	singleLineCmd(cmd, temp);
+	vol_ctx = atoi(temp);
+
+	// nonvoluntary_ctxt_switches
+	sprintf(cmd, "cat /proc/%d/status | grep nonvoluntary_ctxt | grep -Eo '[0-9]{1,10}'", pid);
+	singleLineCmd(cmd, temp);
+	nonvol_ctx = atoi(temp);
+
+	sprintf(cmd, "cat /proc/%d/stat", pid);
+	singleLineCmd(cmd, temp);
+
+	
+	int d = 0; // For unused sscanf elems
+	char s[100];
+	int n = sscanf(temp, "%d %s %c %d", &d, s, &state, &d);
+	sscanf(temp, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld", &d, s, state, &d, &d, &d, &d, &d, &d, &d, &d, &d, &d, &utime, &stime, &d, &d, &d, &d, &d, &d, &d, &d, &rss);
+
+
+	//rss - TODO: Is this the right rss?
+	sprintf(cmd, "ps -p %d -o rss=", pid);
+	singleLineCmd(cmd, temp);
+	rss = atoi(temp);
+	printf('test');
+}
+
 
 void bg_entry(char *argv){
 	pid_t pid;
@@ -114,7 +168,9 @@ void bg_entry(char *argv){
 
 void bglist_entry(void){}
 void bgsig_entry(int pid, int cmd_type){}
-void pstat_entry(int pid){}
+void pstat_entry(int pid){
+	struct process proc_info = query_proc(pid);
+}
 
 void check_zombieProcess(void){
 	int status;
