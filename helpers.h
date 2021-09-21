@@ -4,7 +4,7 @@
 struct process {
     int pid;
     char comm[350];
-    char exec_path[100];
+    char exec_path[200];
     char state;
     long unsigned int utime;
     long unsigned int stime;

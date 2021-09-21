@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <errno.h>
 #include <unistd.h>
 #include "helpers.h"
@@ -17,7 +18,7 @@
 #define CMD_PSTAT 5
 
 struct process running_procs[MAX_PROCS];
-
+// TODO: Debug double kill message when we bgkill
 int main(){
 	char* argv[NUM_ARGS]; // Support 20 arguments of 40 characters each
 	char* cmd;
@@ -61,8 +62,18 @@ int main(){
 				break;
 
 			case CMD_BGKILL:
+				pid = atoi(argv[1]);
+				bgsig_entry(pid, CMD_BGKILL);
+				break;
+
 			case CMD_BGSTOP:
-				bgsig_entry(pid, cmd_type);
+				pid = atoi(argv[1]);
+				bgsig_entry(pid, CMD_BGSTOP);
+				break;
+
+			case CMD_BGSTART:
+				pid = atoi(argv[1]);
+				bgsig_entry(pid, CMD_BGSTART);
 				break;
 
 			case CMD_PSTAT:
@@ -74,7 +85,7 @@ int main(){
 				break;
 		}
 
-		//check_zombieProcess();
+		check_zombieProcess();
 
 		// Empty argv for the next loop
 		int j = 0;
@@ -100,17 +111,20 @@ int parse_cmd_type(char* cmd_type){
 	else return -1;
 }
 
-void append_new_proc(int pid){
+void append_new_proc(int pid, char* path){
 	struct process proc;
 	for(int i=0;i<MAX_PROCS-1;i++){
 		if(running_procs[i].pid == 0){
 			running_procs[i].pid = pid;
+			strcpy(running_procs[i].exec_path, path);
+			break;
 		}
 	}
 	
 }
 
 struct process query_proc(int pid){
+	struct process proc;
 	char temp[350];
 	char comm[350];
 	char state;
@@ -122,25 +136,15 @@ struct process query_proc(int pid){
 	char cmd[50];
 	
 
-	// Comm
-	sprintf(cmd, "ps -p %d -o comm=", pid);
-	singleLineCmd(cmd, comm);
-	// Remove newline from end of string
-	for(int i = 0; i<349;i++){
-		if(comm[i] == '\n'){
-			comm[i] = '\0';
-			break;
-		}
-	}
 	// voluntary_ctxt_switches
 	sprintf(cmd, "cat /proc/%d/status | grep voluntary_ctxt | grep -Eo '[0-9]{1,10}'", pid);
 	singleLineCmd(cmd, temp);
-	vol_ctx = atoi(temp);
+	proc.vol_ctxt_switches = atoi(temp);
 
 	// nonvoluntary_ctxt_switches
 	sprintf(cmd, "cat /proc/%d/status | grep nonvoluntary_ctxt | grep -Eo '[0-9]{1,10}'", pid);
 	singleLineCmd(cmd, temp);
-	nonvol_ctx = atoi(temp);
+	proc.nonvol_ctxt_switches = atoi(temp);
 
 	sprintf(cmd, "cat /proc/%d/stat", pid);
 	singleLineCmd(cmd, temp);
@@ -148,7 +152,7 @@ struct process query_proc(int pid){
 	// Parse output of /proc/{pid}/stat
 	int d = 0; // For unused sscanf elems
 	char s[100];
-	int n = sscanf(temp, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld", &d, s, &state, &d, &d, &d, &d, &d, &d, &d, &d, &d, &d, &utime, &stime, &d, &d, &d, &d, &d, &d, &d, &d, &rss);
+	int n = sscanf(temp, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld", &d, comm, &state, &d, &d, &d, &d, &d, &d, &d, &d, &d, &d, &utime, &stime, &d, &d, &d, &d, &d, &d, &d, &d, &rss);
 	if(n < 24){
 		printf("Error parsing command: ");
 		printf(cmd);
@@ -156,33 +160,44 @@ struct process query_proc(int pid){
 		printf(temp);
 	}
 
-	// Build a struct with all this parsed info
-	struct process proc;
+	// Complete the struct
 	proc.pid = pid;
 	strcpy(proc.comm, comm);
 	proc.rss = rss;
 	proc.state = state;
 	proc.utime = utime;
 	proc.stime = stime;
-	proc.vol_ctxt_switches = vol_ctx;
-	proc.nonvol_ctxt_switches = nonvol_ctx;
-
+	
 	return proc;
 }
 
 
-void bg_entry(char *argv){
+void bg_entry(char *argv[]){
 	pid_t pid;
 	pid = fork();
 	if(pid == 0){
-		if(execvp(argv[0], argv) < 0){
+		// Calculate length of argv
+		int size = 0;
+		while(argv[size] != 0){
+			size++;
+		}
+		char *pass_args[size];
+
+		// Slice off first argv element
+		memcpy(pass_args, (argv + (sizeof(*argv[0]))), (size-1) * sizeof(*argv));
+		// Run the program and pass args
+		if(execvp(argv[1], pass_args) < 0){
 			perror("Error on execvp");
 		}
 		exit(EXIT_SUCCESS);
 	}
 	else if(pid > 0) {
-		// TODO: get executable path then pass to append-new-proc
-		append_new_proc(pid);
+		// Get executable path then pass to append-new-proc
+		char cmd[50];
+		char path[200];
+		sprintf(cmd, "readlink /proc/%d/exe", pid);
+		singleLineCmd(cmd, path);
+		append_new_proc(pid, path);
 	}
 	else {
 		perror("fork failed");
@@ -190,10 +205,58 @@ void bg_entry(char *argv){
 	}
 }
 
-void bglist_entry(void){}
-void bgsig_entry(int pid, int cmd_type){}
+void bglist_entry(){
+	int i = 0;
+	char temp[200];
+	while(running_procs[i].pid != 0){
+		sprintf(temp, "%d:	%s",running_procs[i].pid, running_procs[i].exec_path);
+		printf(temp);
+		i++;
+	}
+	sprintf(temp, "Total background jobs:	%d\n", i);
+	printf(temp);
+}
+
+
+void bgsig_entry(int pid, int cmd_type){
+	char temp[50];
+	int sig_cmd;
+	char* operation;
+
+	switch (cmd_type){
+		case CMD_BGKILL:
+			sig_cmd = SIGKILL;
+			operation = "killed";
+			break;
+		case CMD_BGSTOP:
+			sig_cmd = SIGSTOP;
+			operation = "stopped";
+			break;
+		case CMD_BGSTART:
+			sig_cmd = SIGCONT;
+			operation = "started";
+			break;
+		default:
+			printf("Invalid bgsig command received");
+			return;
+	}
+
+	int result = kill(pid, sig_cmd);
+	if(result != 0){
+		printf("Command failed, double check your PID");
+	}
+	if(sig_cmd == SIGKILL || sig_cmd == SIGSTOP){
+		remove_proc_from_arr(pid);
+	}
+	sprintf(temp, "Process with pid %d %s\n", pid, operation);
+	printf(temp);
+
+	return;
+}
+
+
 void pstat_entry(int pid){
-	char tempstr[150];
+	char tempstr[250];
 
 	if(pid_exists(pid) != 0){
 		sprintf(tempstr, "\nError:	Process %d does not exist\n", pid);
@@ -222,27 +285,61 @@ void pstat_entry(int pid){
 }
 
 void check_zombieProcess(void){
+	char temp[50];
 	int status;
 	int retVal = 0;
+	int user_initiated_kill = 0;
 	
 	while(1) {
 		usleep(1000);
-
-		char* headPnode = "CHANGEME";
-		if(headPnode == NULL){
-			return ;
-		}
 		retVal = waitpid(-1, &status, WNOHANG);
 		if(retVal > 0) {
-			//remove the background process from your data structure
+			// If the killed PID has already been removed from running_procs then don't print our lovely message
+			// because the kill was initiated by the user
+			for (int i = 0; i < MAX_PROCS-1; i++)
+			{
+				if(running_procs[i].pid == retVal)	break;
+				else if (running_procs[i].pid == 0){
+					user_initiated_kill = 1;
+					break;
+				}
+			}
+			if(user_initiated_kill){
+				remove_proc_from_arr(retVal);
+				sprintf(temp, "\nProcess with pid %d terminated in the background\n", retVal);
+				printf(temp);
+			}
 		}
 		else if(retVal == 0){
 			break;
 		}
 		else{
-			perror("waitpid failed");
-			exit(EXIT_FAILURE);
+			if(running_procs[0].pid == 0){
+				break;
+			}
+			else{
+				perror("waitpid failed");
+				exit(EXIT_FAILURE);
+			}
 		}
 	}
-	return ;
+	return;
+}
+
+void remove_proc_from_arr(int pid){
+    int i = 0;
+    while(running_procs[i].pid != 0){
+        if(running_procs[i].pid == pid){
+            running_procs[i].pid = 0;
+            // Shuffle array down
+            int j = i+1;
+            while(running_procs[j].pid != 0){
+                running_procs[j-1] = running_procs[j];
+                j++;
+            }
+            // Final overwrite so we don't have a duplicate process on the end of the array
+            running_procs[j-1].pid = 0;
+            break;
+        }
+    }
 }
