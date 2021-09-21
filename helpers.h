@@ -3,6 +3,7 @@
 
 struct process {
     int pid;
+    int killed;
     char comm[350];
     char exec_path[200];
     char state;

@@ -85,7 +85,12 @@ int main(){
 				break;
 		}
 
-		check_zombieProcess();
+		// Only check for zombies if we have procs running
+		for(int i = 0;i<MAX_PROCS-1;i++){
+			if(running_procs[i].pid > 0 && !running_procs[i].killed){
+				check_zombieProcess();
+			}
+		}
 
 		// Empty argv for the next loop
 		int j = 0;
@@ -114,8 +119,9 @@ int parse_cmd_type(char* cmd_type){
 void append_new_proc(int pid, char* path){
 	struct process proc;
 	for(int i=0;i<MAX_PROCS-1;i++){
-		if(running_procs[i].pid == 0){
+		if(running_procs[i].pid == 0 || running_procs[i].killed){
 			running_procs[i].pid = pid;
+			running_procs[i].killed = 0;
 			strcpy(running_procs[i].exec_path, path);
 			break;
 		}
@@ -174,15 +180,20 @@ struct process query_proc(int pid){
 
 void bg_entry(char *argv[]){
 	pid_t pid;
-	pid = fork();
-	if(pid == 0){
-		// Calculate length of argv
-		int size = 0;
-		while(argv[size] != 0){
-			size++;
-		}
-		char *pass_args[size];
 
+	// Calculate length of argv
+	int size = 0;
+	while(argv[size] != 0){
+		size++;
+	}
+	// No file passed, return
+	if(size == 1){
+		printf("No program specified\n");
+		return;
+	}
+	pid = fork();
+	if(pid == 0){	
+		char *pass_args[size];
 		// Slice off first argv element
 		memcpy(pass_args, (argv + (sizeof(*argv[0]))), (size-1) * sizeof(*argv));
 		// Run the program and pass args
@@ -209,8 +220,11 @@ void bglist_entry(){
 	int i = 0;
 	char temp[200];
 	while(running_procs[i].pid != 0){
-		sprintf(temp, "%d:	%s",running_procs[i].pid, running_procs[i].exec_path);
-		printf(temp);
+		if(!running_procs[i].killed){
+			sprintf(temp, "%d:	%s",running_procs[i].pid, running_procs[i].exec_path);
+			printf(temp);
+			break;
+		}
 		i++;
 	}
 	sprintf(temp, "Total background jobs:	%d\n", i);
@@ -298,16 +312,17 @@ void check_zombieProcess(void){
 			// because the kill was initiated by the user
 			for (int i = 0; i < MAX_PROCS-1; i++)
 			{
-				if(running_procs[i].pid == retVal)	break;
-				else if (running_procs[i].pid == 0){
+			//	if(running_procs[i].pid == retVal)	break;
+				if (running_procs[i].killed){
 					user_initiated_kill = 1;
 					break;
 				}
 			}
-			if(user_initiated_kill){
+			if(!user_initiated_kill){
 				remove_proc_from_arr(retVal);
 				sprintf(temp, "\nProcess with pid %d terminated in the background\n", retVal);
 				printf(temp);
+				break;
 			}
 		}
 		else if(retVal == 0){
@@ -327,19 +342,12 @@ void check_zombieProcess(void){
 }
 
 void remove_proc_from_arr(int pid){
-    int i = 0;
+	int i = 0;
     while(running_procs[i].pid != 0){
         if(running_procs[i].pid == pid){
-            running_procs[i].pid = 0;
-            // Shuffle array down
-            int j = i+1;
-            while(running_procs[j].pid != 0){
-                running_procs[j-1] = running_procs[j];
-                j++;
-            }
-            // Final overwrite so we don't have a duplicate process on the end of the array
-            running_procs[j-1].pid = 0;
-            break;
+			running_procs[i].killed = 1;
+			break;
         }
+		i++;
     }
 }
