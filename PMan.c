@@ -197,10 +197,18 @@ void bg_entry(char *argv[]){
 		// Slice off first argv element
 		memcpy(pass_args, (argv + (sizeof(*argv[0]))), (size-1) * sizeof(*argv));
 		// Run the program and pass args
-		if(execvp(argv[1], pass_args) < 0){
-			perror("Error on execvp");
+		if(access(argv[1], F_OK ) != -1 ) {
+    		// file exists
+			if(execvp(argv[1], pass_args) < 0){
+				perror("Error on execvp");
+			}
+			exit(EXIT_SUCCESS);
 		}
-		exit(EXIT_SUCCESS);
+		else{
+			printf("Program not found. Check the path\n");
+			exit(EXIT_FAILURE);
+		}
+		
 	}
 	else if(pid > 0) {
 		// Get executable path then pass to append-new-proc
@@ -218,16 +226,21 @@ void bg_entry(char *argv[]){
 
 void bglist_entry(){
 	int i = 0;
+	int alive = 0;
 	char temp[200];
 	while(running_procs[i].pid != 0){
 		if(!running_procs[i].killed){
+			alive++;
 			sprintf(temp, "%d:	%s",running_procs[i].pid, running_procs[i].exec_path);
 			printf(temp);
-			break;
+		}
+		else{
+			i++;
+			continue;
 		}
 		i++;
 	}
-	sprintf(temp, "Total background jobs:	%d\n", i);
+	sprintf(temp, "Total background jobs:	%d\n", alive);
 	printf(temp);
 }
 
