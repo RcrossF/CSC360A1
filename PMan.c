@@ -162,8 +162,8 @@ struct process query_proc(int pid){
 	if(n < 24){
 		printf("Error parsing command: ");
 		printf(cmd);
-		sprintf(temp, "\n%d/24 values parsed sucessfully", n);
-		printf(temp);
+		printf("\n%d/24 values parsed sucessfully\n", n);
+		return;
 	}
 
 	// Complete the struct
@@ -227,12 +227,10 @@ void bg_entry(char *argv[]){
 void bglist_entry(){
 	int i = 0;
 	int alive = 0;
-	char temp[200];
 	while(running_procs[i].pid != 0){
 		if(!running_procs[i].killed){
 			alive++;
-			sprintf(temp, "%d:	%s",running_procs[i].pid, running_procs[i].exec_path);
-			printf(temp);
+			printf("%d:	%s",running_procs[i].pid, running_procs[i].exec_path);
 		}
 		else{
 			i++;
@@ -240,13 +238,11 @@ void bglist_entry(){
 		}
 		i++;
 	}
-	sprintf(temp, "Total background jobs:	%d\n", alive);
-	printf(temp);
+	printf("Total background jobs:	%d\n", alive);
 }
 
 
 void bgsig_entry(int pid, int cmd_type){
-	char temp[50];
 	int sig_cmd;
 	char* operation;
 
@@ -275,44 +271,38 @@ void bgsig_entry(int pid, int cmd_type){
 	if(sig_cmd == SIGKILL || sig_cmd == SIGSTOP){
 		remove_proc_from_arr(pid);
 	}
-	sprintf(temp, "Process with pid %d %s\n", pid, operation);
-	printf(temp);
+	printf("Process with pid %d %s\n", pid, operation);
 
 	return;
 }
 
 
 void pstat_entry(int pid){
-	char tempstr[250];
-
 	if(pid_exists(pid) != 0){
-		sprintf(tempstr, "\nError:	Process %d does not exist\n", pid);
-		printf(tempstr);
+		printf("\nError:	Process %d does not exist\n", pid);
 		return;
 	}
 	struct process proc_info = query_proc(pid);
 
-	sprintf(tempstr, "\nDetails for PID %d:\n"
-					"	comm: %s\n"
-					"	state: %c\n"
-					"	utime: %lu\n"
-					"	stime: %lu\n"
-					"	rss: %ld\n"
-					"	voluntary_ctxt_switches: %ld\n"
-					"	nonvoluntary_ctxt_switches: %ld\n",
-					proc_info.pid,
-					proc_info.comm,
-					proc_info.state,
-					proc_info.utime,
-					proc_info.stime,
-					proc_info.rss,
-					proc_info.vol_ctxt_switches,
-					proc_info.nonvol_ctxt_switches);
-	printf(tempstr);
+	printf("\nDetails for PID %d:\n"
+			"	comm: %s\n"
+			"	state: %c\n"
+			"	utime: %lu\n"
+			"	stime: %lu\n"
+			"	rss: %ld\n"
+			"	voluntary_ctxt_switches: %ld\n"
+			"	nonvoluntary_ctxt_switches: %ld\n",
+			proc_info.pid,
+			proc_info.comm,
+			proc_info.state,
+			proc_info.utime,
+			proc_info.stime,
+			proc_info.rss,
+			proc_info.vol_ctxt_switches,
+			proc_info.nonvol_ctxt_switches);
 }
 
 void check_zombieProcess(void){
-	char temp[50];
 	int status;
 	int retVal = 0;
 	int user_initiated_kill = 0;
@@ -333,8 +323,7 @@ void check_zombieProcess(void){
 			}
 			if(!user_initiated_kill){
 				remove_proc_from_arr(retVal);
-				sprintf(temp, "\nProcess with pid %d terminated in the background\n", retVal);
-				printf(temp);
+				printf("\nProcess with pid %d terminated in the background\n", retVal);
 				break;
 			}
 		}
