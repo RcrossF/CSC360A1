@@ -23,7 +23,7 @@
 struct process running_procs[MAX_PROCS];
 
 int main(){
-	char* argv[NUM_ARGS]; // Support 20 arguments of 40 characters each
+	char* argv[NUM_ARGS]; // Support 20 arguments
 	char* cmd;
 	char* token;
 	int cmd_type;
@@ -38,8 +38,6 @@ int main(){
 
 	while(1){	
 		cmd = readline("PMan: > ");
-
-		printf("%s", cmd);
 		strcpy(temp, cmd);
 
 		// Parse command
