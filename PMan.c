@@ -205,6 +205,8 @@ void bg_entry(char *argv[]){
 		// Run the program and pass args
 		if(access(argv[1], F_OK ) != -1 ) {
     		// file exists
+			printf("\n%s", argv[1]);
+			printf("\n%s", pass_args);
 			if(execvp(argv[1], pass_args) < 0){
 				perror("Error on execvp");
 			}
