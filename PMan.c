@@ -198,15 +198,21 @@ void bg_entry(char *argv[]){
 		return;
 	}
 	pid = fork();
-	if(pid == 0){	
-		char *pass_args[size];
+	if(pid == 0){
+//	if(1){	
+		char *pass_args[size]; // 1 less than argv to remove "bg"
 		// Slice off first argv element
-		memcpy(pass_args, (argv + (sizeof(*argv[0]))), (size-1) * sizeof(*argv));
+		for(int i=1;i<size;i++){
+			pass_args[i-1] = argv[i];
+		}
+		// Null terminate
+		pass_args[size-1] = 0;
+		//memcpy(pass_args, (argv + (sizeof(*argv[0]))), (size-1) * sizeof(*argv));
 		// Run the program and pass args
 		if(access(argv[1], F_OK ) != -1 ) {
     		// file exists
-			printf("\n%s", argv[1]);
-			printf("\n%s", pass_args);
+		//	printf("\nargv[1]: %s", argv[1]);
+		//	printf("\npass_args[0]: %s", pass_args[0]);
 			if(execvp(argv[1], pass_args) < 0){
 				perror("Error on execvp");
 			}
