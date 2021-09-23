@@ -18,24 +18,28 @@
 #define CMD_PSTAT 5
 
 struct process running_procs[MAX_PROCS];
-// TODO: Debug double kill message when we bgkill
+
 int main(){
 	char* argv[NUM_ARGS]; // Support 20 arguments of 40 characters each
 	char* cmd;
 	char* token;
 	int cmd_type;
+	char temp[200];
 	int pid = 0;
 
 	for(int i = 0; i < MAX_PROCS-1;i++){
 		running_procs[i].pid = 0;
+		running_procs[i].killed = 0;
 	}
 	
 
 	while(1){	
 		cmd = readline("PMan: > ");
 
+		strcpy(temp, cmd);
+		
 		// Parse command
-		argv[0] = strtok(cmd, " ");
+		argv[0] = strtok(temp, " ");
    
 		// Check if we got absolutely no input
 		if(cmd[0] == '\0')	cmd_type = -1;
