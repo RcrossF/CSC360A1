@@ -4,11 +4,13 @@
 #include <signal.h>
 #include <errno.h>
 #include <unistd.h>
-#include "helpers.h"
+
 #include <sys/times.h>
 #include <sys/wait.h>
-
 #include <readline/readline.h>
+
+#include "helpers.h"
+
 
 #define NUM_ARGS 20
 #define MAX_PROCS 50
@@ -48,7 +50,7 @@ int main(){
 		else				cmd_type = parse_cmd_type(argv[0]);
 
 		if(cmd_type == -1){
-			printf("\nCommand not found\n");
+			printf("Command not found\n");
 			continue;
 		}
 
