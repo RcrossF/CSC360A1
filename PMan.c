@@ -36,8 +36,9 @@ int main(){
 	while(1){	
 		cmd = readline("PMan: > ");
 
+		printf("%s", cmd);
 		strcpy(temp, cmd);
-		
+
 		// Parse command
 		argv[0] = strtok(temp, " ");
    
