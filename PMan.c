@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include "helpers.h"
 #include <sys/times.h>
+#include <readline/readline.h>
 
 #define NUM_ARGS 20
 #define MAX_PROCS 50
@@ -144,7 +145,7 @@ struct process query_proc(int pid){
 	int nonvol_ctx;
 	long unsigned int utime;
 	long unsigned int stime;
-	char cmd[50];
+	char cmd[60];
 	
 
 	// voluntary_ctxt_switches
@@ -162,13 +163,11 @@ struct process query_proc(int pid){
 
 	// Parse output of /proc/{pid}/stat
 	int d = 0; // For unused sscanf elems
-	char s[100];
 	int n = sscanf(temp, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld", &d, comm, &state, &d, &d, &d, &d, &d, &d, &d, &d, &d, &d, &utime, &stime, &d, &d, &d, &d, &d, &d, &d, &d, &rss);
 	if(n < 24){
 		printf("Error parsing command: ");
 		printf(cmd);
 		printf("\n%d/24 values parsed sucessfully\n", n);
-		return;
 	}
 
 	// Complete the struct
