@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include "helpers.h"
 #include <sys/times.h>
+#include <sys/wait.h>
+
 #include <readline/readline.h>
 
 #define NUM_ARGS 20
@@ -166,7 +168,7 @@ struct process query_proc(int pid){
 	int n = sscanf(temp, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld", &d, comm, &state, &d, &d, &d, &d, &d, &d, &d, &d, &d, &d, &utime, &stime, &d, &d, &d, &d, &d, &d, &d, &d, &rss);
 	if(n < 24){
 		printf("Error parsing command: ");
-		printf(cmd);
+		printf("%s", cmd);
 		printf("\n%d/24 values parsed sucessfully\n", n);
 	}
 
