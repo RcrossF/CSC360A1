@@ -226,13 +226,7 @@ void bg_entry(char *argv[]){
 	}
 	else if(pid > 0) {
 		// Get executable path then pass to append-new-proc
-		sleep(0.2); // Delay or we get the path to PMan instead of the program that was called
-		char proc_loc[50];
-		char path[4096];
-		sprintf(proc_loc, "/proc/%d/exe", pid);
-		int len = readlink(proc_loc, path, 4096);
-		path[len] = '\0';
-		append_new_proc(pid, path);
+		append_new_proc(pid, argv[1]);
 	}
 	else {
 		perror("fork failed");
