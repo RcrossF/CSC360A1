@@ -209,17 +209,16 @@ void bg_entry(char *argv[]){
 		pass_args[size-1] = 0;
 		//memcpy(pass_args, (argv + (sizeof(*argv[0]))), (size-1) * sizeof(*argv));
 		// Run the program and pass args
-		if(access(argv[1], F_OK ) != -1 ) {
-    		// file exists
-		//	printf("\nargv[1]: %s", argv[1]);
-		//	printf("\npass_args[0]: %s", pass_args[0]);
+		//if(access(argv[1], F_OK ) != -1 ) {
+    	if(1){
+			// file exists
 			if(execvp(argv[1], pass_args) < 0){
 				perror("Error on execvp");
 			}
 			exit(EXIT_SUCCESS);
 		}
 		else{
-			printf("Program not found. Check the path\n");
+			printf("\nProgram not found. Check the path\n");
 			exit(EXIT_FAILURE);
 		}
 		
@@ -316,6 +315,9 @@ void check_zombieProcess(void){
 	int status;
 	int retVal = 0;
 	int user_initiated_kill = 0;
+	// Processes that we kill leave remnants in running_procs.
+	// This tracks if they actually died in the background or if we're finding these remnants
+	int actually_died = 0; 
 	
 	while(1) {
 		usleep(1000);
@@ -323,13 +325,18 @@ void check_zombieProcess(void){
 		if(retVal > 0) {
 			// If the killed PID has already been removed from running_procs then don't print our lovely message
 			// because the kill was initiated by the user
-			for (int i = 0; i < MAX_PROCS-1; i++){	
-				if (running_procs[i].killed){
-					user_initiated_kill = 1;
-					break;
+			for (int i=0; i < MAX_PROCS-1; i++){	
+				if (running_procs[i].pid == retVal){
+					if(running_procs[i].killed){
+						user_initiated_kill = 1;
+						break;
+					}
+					else{
+						actually_died = 1;
+					}
 				}
 			}
-			if(!user_initiated_kill){
+			if(!user_initiated_kill && actually_died){
 				remove_proc_from_arr(retVal);
 				printf("\nProcess with pid %d terminated in the background\n", retVal);
 				break;
@@ -339,12 +346,12 @@ void check_zombieProcess(void){
 			break;
 		}
 		else{
-			if(running_procs[0].pid == 0){
-				break;
-			}
-			else{
-				perror("waitpid failed");
-				exit(EXIT_FAILURE);
+			// If we have no child processes ignore waitpid errors
+			for(int i=0;i<MAX_PROCS-1;i++){
+				if(running_procs[i].pid && !running_procs[i].killed){
+					perror("waitpid failed");
+					exit(EXIT_FAILURE);
+				}
 			}
 		}
 	}
