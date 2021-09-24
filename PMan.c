@@ -226,7 +226,7 @@ void bg_entry(char *argv[]){
 	}
 	else if(pid > 0) {
 		// Get executable path then pass to append-new-proc
-		usleep(10000); // Delay or we get the path to PMan instead of the program that was called
+		usleep(100000); // Delay or we get the path to PMan instead of the program that was called
 		char proc_loc[50];
 		char path[4096];
 		sprintf(proc_loc, "/proc/%d/exe", pid);
