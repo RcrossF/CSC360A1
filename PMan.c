@@ -145,9 +145,9 @@ struct process query_proc(int pid){
 	long int rss;
 	int vol_ctx;
 	int nonvol_ctx;
-	long unsigned int utime;
-	long unsigned int stime;
-	char cmd[60];
+	unsigned long int utime;
+	unsigned long int stime;
+	char cmd[80];
 	
 
 	// voluntary_ctxt_switches
@@ -165,7 +165,8 @@ struct process query_proc(int pid){
 
 	// Parse output of /proc/{pid}/stat
 	int d = 0; // For unused sscanf elems
-	int n = sscanf(temp, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld", &d, comm, &state, &d, &d, &d, &d, &d, &d, &d, &d, &d, &d, &utime, &stime, &d, &d, &d, &d, &d, &d, &d, &d, &rss);
+	int n = sscanf(temp, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %ld %llu %lu %ld", 
+					&d, comm, &state, &d, &d, &d, &d, &d, &d, &d, &d, &d, &d, &utime, &stime, &d, &d, &d, &d, &d, &d, &d, &d, &rss);
 	if(n < 24){
 		printf("Error parsing command: ");
 		printf("%s", cmd);
@@ -199,7 +200,6 @@ void bg_entry(char *argv[]){
 	}
 	pid = fork();
 	if(pid == 0){
-//	if(1){	
 		char *pass_args[size]; // 1 less than argv to remove "bg"
 		// Slice off first argv element
 		for(int i=1;i<size;i++){
@@ -209,19 +209,10 @@ void bg_entry(char *argv[]){
 		pass_args[size-1] = 0;
 		//memcpy(pass_args, (argv + (sizeof(*argv[0]))), (size-1) * sizeof(*argv));
 		// Run the program and pass args
-		//if(access(argv[1], F_OK ) != -1 ) {
-    	if(1){
-			// file exists
-			if(execvp(argv[1], pass_args) < 0){
-				perror("Error on execvp");
-			}
-			exit(EXIT_SUCCESS);
+		if(execvp(argv[1], pass_args) < 0){
+			perror("Error on execvp");
 		}
-		else{
-			printf("\nProgram not found. Check the path\n");
-			exit(EXIT_FAILURE);
-		}
-		
+		exit(EXIT_SUCCESS);
 	}
 	else if(pid > 0) {
 		// Get executable path then pass to append-new-proc
