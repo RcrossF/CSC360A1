@@ -226,10 +226,12 @@ void bg_entry(char *argv[]){
 	}
 	else if(pid > 0) {
 		// Get executable path then pass to append-new-proc
-		char cmd[50];
-		char path[200];
-		sprintf(cmd, "readlink /proc/%d/exe", pid);
-		singleLineCmd(cmd, path);
+		usleep(500); // Delay or we get the path to PMan instead of the program that was called
+		char proc_loc[50];
+		char path[4096];
+		sprintf(proc_loc, "/proc/%d/exe", pid);
+		int len = readlink(proc_loc, path, 4096);
+		path[len] = '\0';
 		append_new_proc(pid, path);
 	}
 	else {
@@ -244,7 +246,7 @@ void bglist_entry(){
 	while(running_procs[i].pid != 0){
 		if(!running_procs[i].killed){
 			alive++;
-			printf("%d:	%s",running_procs[i].pid, running_procs[i].exec_path);
+			printf("%d:	%s\n",running_procs[i].pid, running_procs[i].exec_path);
 		}
 		else{
 			i++;
@@ -327,9 +329,7 @@ void check_zombieProcess(void){
 		if(retVal > 0) {
 			// If the killed PID has already been removed from running_procs then don't print our lovely message
 			// because the kill was initiated by the user
-			for (int i = 0; i < MAX_PROCS-1; i++)
-			{
-			//	if(running_procs[i].pid == retVal)	break;
+			for (int i = 0; i < MAX_PROCS-1; i++){	
 				if (running_procs[i].killed){
 					user_initiated_kill = 1;
 					break;
