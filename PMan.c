@@ -60,6 +60,24 @@ int main(){
 			argv[++i] = strtok(NULL, " ");
 		}
 		
+		// Make sure PID was input for commands that need it
+		switch (cmd_type){
+			case CMD_BGKILL:
+			case CMD_BGSTOP:
+			case CMD_BGSTART:
+			case CMD_PSTAT:
+				if(argv[1] != 0x0){
+					pid = atoi(argv[1]);
+				}
+				else{
+					printf("\nPlease specify a PID\n");
+					continue;
+				}
+			default:
+				break;
+		}
+
+		// Run the requested command
 		switch (cmd_type){
 			case CMD_BG:
 				bg_entry(argv);
@@ -70,22 +88,18 @@ int main(){
 				break;
 
 			case CMD_BGKILL:
-				pid = atoi(argv[1]);
 				bgsig_entry(pid, CMD_BGKILL);
 				break;
 
 			case CMD_BGSTOP:
-				pid = atoi(argv[1]);
 				bgsig_entry(pid, CMD_BGSTOP);
 				break;
 
 			case CMD_BGSTART:
-				pid = atoi(argv[1]);
 				bgsig_entry(pid, CMD_BGSTART);
 				break;
 
 			case CMD_PSTAT:
-				pid = atoi(argv[1]);
 				pstat_entry(pid);
 				break;
 
