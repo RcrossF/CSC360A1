@@ -11,8 +11,6 @@
 
 #include "helpers.h"
 
-
-#define NUM_ARGS 20
 #define MAX_PROCS 50
 
 #define CMD_BG 0
@@ -25,7 +23,6 @@
 struct process running_procs[MAX_PROCS];
 
 int main(){
-	char* argv[NUM_ARGS]; // Support 20 arguments
 	char* cmd;
 	char* token;
 	int cmd_type;
@@ -41,6 +38,13 @@ int main(){
 	while(1){	
 		cmd = readline("PMan: > ");
 		strcpy(temp, cmd);
+
+		// Count number of spaces and allocate argv accordingly
+		int num_args = 0;
+		for(int i=0;temp[i]!='\0';i++){
+			if(temp[i] == ' ')	num_args++;
+		}
+		char* argv[num_args+1];
 
 		// Parse command
 		argv[0] = strtok(temp, " ");
@@ -112,13 +116,6 @@ int main(){
 			if(running_procs[i].pid > 0 && !running_procs[i].killed){
 				check_zombieProcess();
 			}
-		}
-
-		// Empty argv for the next loop
-		int j = 0;
-		while(j < NUM_ARGS - 1){
-			argv[j] = "";
-			j++;
 		}
 	}
 
