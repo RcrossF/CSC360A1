@@ -218,7 +218,6 @@ void bg_entry(char *argv[]){
 		}
 		// Null terminate
 		pass_args[size-1] = 0;
-		//memcpy(pass_args, (argv + (sizeof(*argv[0]))), (size-1) * sizeof(*argv));
 		// Run the program and pass args
 		if(execvp(argv[1], pass_args) < 0){
 			perror("Error on execvp");
