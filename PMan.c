@@ -185,12 +185,13 @@ struct process query_proc(int pid){
 	}
 
 	// Complete the struct
+	int sysclk = sysconf(_SC_CLK_TCK);
 	proc.pid = pid;
 	strcpy(proc.comm, comm);
 	proc.rss = rss;
 	proc.state = state;
-	proc.utime = utime;
-	proc.stime = stime;
+	proc.utime = utime / (float)sysclk;
+	proc.stime = stime / (float)sysclk;
 	
 	return proc;
 }
@@ -297,8 +298,8 @@ void pstat_entry(int pid){
 	printf("\nDetails for PID %d:\n"
 			"	comm: %s\n"
 			"	state: %c\n"
-			"	utime: %lu\n"
-			"	stime: %lu\n"
+			"	utime: %lf\n"
+			"	stime: %lf\n"
 			"	rss: %ld\n"
 			"	voluntary_ctxt_switches: %ld\n"
 			"	nonvoluntary_ctxt_switches: %ld\n",

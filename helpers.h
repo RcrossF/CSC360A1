@@ -7,8 +7,8 @@ struct process {
     char comm[350];
     char exec_path[200];
     char state;
-    long unsigned int utime;
-    long unsigned int stime;
+    double utime;
+    double stime;
     long int rss;
     long int vol_ctxt_switches;
     long int nonvol_ctxt_switches;
